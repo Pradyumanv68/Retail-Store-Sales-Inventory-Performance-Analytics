@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.ipynb_checkpoints/
+data/retail_store_inventory.csv
+.streamlit/secrets.toml
+.pytest_cache/
+.DS_Store
