@@ -42,7 +42,7 @@ pip install -r requirements.txt
 streamlit run app/app.py
 ```
 
-The dashboard uses the supplied/Kaggle CSV when placed at `data/retail_store_inventory.csv`; otherwise it creates a reproducible demo dataset automatically.
+The dashboard first checks `data/retail_store_inventory.csv`. If it is not packaged in the repository, the deployed app automatically loads the **76,000-row Retail Store Inventory and Demand Forecasting dataset** from its public source, so the live dashboard uses realistic retail observations rather than a toy dataset. The dataset includes inventory, units sold, demand, pricing, discounts, promotions, competitor pricing, weather, seasonality and epidemic indicators. citeturn0search0
 
 ### 📌 Suggested Evaluation Metrics
 Forecasting is evaluated using **MAE, RMSE and R²** with a chronological holdout to reduce leakage from future observations.
@@ -50,3 +50,19 @@ Forecasting is evaluated using **MAE, RMSE and R²** with a chronological holdou
 ### 👨‍💻 Author
 **Pradyuman Verma**  
 B.Tech CSE (Data Science) — SRM Institute of Science and Technology
+
+
+## Dataset & analytical depth
+
+The project uses the Retail Store Inventory and Demand Forecasting dataset, described by Kaggle as a synthetic retail dataset for inventory and demand forecasting. It contains 76,000 observations and 16 business/environmental variables. The analysis treats **Demand** as the forecasting target and connects it to inventory coverage, replenishment recommendations, promotions, pricing and competitive context. citeturn0search0
+
+## Why this is more than a dashboard
+
+**Observe → Diagnose → Predict → Act**
+
+1. Observe sales, revenue, demand and inventory KPIs.
+2. Diagnose category/store/inventory pressure and promotion effects.
+3. Predict future demand with chronological holdout evaluation.
+4. Act using safety-stock and recommended-order logic.
+
+> Model feature importance should be interpreted as predictive contribution, not causal impact.
