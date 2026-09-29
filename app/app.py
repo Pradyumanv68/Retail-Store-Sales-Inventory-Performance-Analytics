@@ -161,8 +161,22 @@ with tab2:
     fig=px.pie(cnt,names="Status",values="Count",hole=.62,title="Inventory Health Distribution")
     fig.update_layout(template=plot_template,margin=dict(l=10,r=10,t=50,b=10))
     a.plotly_chart(fig,use_container_width=True)
-    fig=px.scatter(inv,x="Demand Forecast",y="Inventory Level",color="Inventory_Status",size="Recommended Order",
-                   hover_data=["Store ID","Product ID"],title="Demand vs Available Inventory")
+    # Plotly can reject mixed/object dtypes after dataframe aggregation; use explicit numeric plot columns.
+    radar=inv.copy()
+    radar["Demand Forecast"]=pd.to_numeric(radar["Demand Forecast"],errors="coerce").fillna(0)
+    radar["Inventory Level"]=pd.to_numeric(radar["Inventory Level"],errors="coerce").fillna(0)
+    radar["Recommended Order"]=pd.to_numeric(radar["Recommended Order"],errors="coerce").fillna(0).clip(lower=0)
+    radar["Inventory_Status"]=radar["Inventory_Status"].astype(str)
+    fig=px.scatter(
+        radar,
+        x="Demand Forecast",
+        y="Inventory Level",
+        color="Inventory_Status",
+        size="Recommended Order",
+        size_max=32,
+        hover_data=["Store ID","Product ID"],
+        title="Demand vs Available Inventory",
+    )
     fig.update_layout(template=plot_template,margin=dict(l=10,r=10,t=50,b=10))
     b.plotly_chart(fig,use_container_width=True)
     st.markdown('<div class="section">SKU-level decision table</div>',unsafe_allow_html=True)
@@ -179,7 +193,7 @@ with tab3:
         a.metric("MAE",f"{metrics['MAE']:.2f}")
         b.metric("RMSE",f"{metrics['RMSE']:.2f}")
         c.metric("R²",f"{metrics['R2']:.3f}")
-        plot=preds.groupby("Date",as_index=False).agg(Actual=("Units Sold","sum"),Predicted=("Predicted_Units_Sold","sum"))
+        plot=preds.groupby("Date",as_index=False).agg(Actual=("Demand","sum"),Predicted=("Predicted_Demand","sum"))
         fig=px.line(plot,x="Date",y=["Actual","Predicted"],title="Chronological Holdout: Actual vs Predicted",markers=False)
         fig.update_layout(template=plot_template,margin=dict(l=10,r=10,t=50,b=10),hovermode="x unified")
         st.plotly_chart(fig,use_container_width=True)
