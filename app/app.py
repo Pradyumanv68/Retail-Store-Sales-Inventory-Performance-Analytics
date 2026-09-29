@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-from analytics import load_data, kpis, monthly_sales, top_products
+from analytics import load_data, load_remote, kpis, monthly_sales, top_products, demand_by_category, promotion_impact
 from forecasting import chronological_model, forecast_next_days
 from recommendations import inventory_status, generate_alerts, narrative
 
@@ -51,30 +51,25 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def get_df():
-    path = "data/retail_store_inventory.csv"
+    path="data/retail_store_inventory.csv"
     if os.path.exists(path):
-        return load_data(path), "Supplied / Kaggle dataset"
-    rng=np.random.default_rng(42)
-    dates=pd.date_range("2025-01-01",periods=180)
-    rows=[]
-    cats=["Electronics","Grocery","Clothing","Home"]
-    regs=["North","South","East","West"]
-    for store in range(1,7):
-        for prod in range(1,13):
-            cat=cats[(prod-1)%4]
-            base=8+(prod%7)*2
-            for d in dates:
-                season=1+0.18*np.sin(2*np.pi*d.dayofyear/365)
-                sold=max(0,int(rng.poisson(base*season)))
-                price=round(80+prod*23+store*7,2)
-                inv=max(0,int(rng.normal(100,25)+base*4-sold))
-                disc=round(float(rng.uniform(0,.2)),2)
-                rows.append([d,f"S{store:02d}",f"P{prod:03d}",cat,inv,sold,max(0,int(sold*1.1)),price,disc,int(rng.random()<.2),regs[(store-1)%4]])
-    return pd.DataFrame(rows,columns=["Date","Store ID","Product ID","Category","Inventory Level","Units Sold","Units Ordered","Price","Discount","Promotion","Region"]).assign(
-        Revenue=lambda x:x["Units Sold"]*x["Price"]*(1-x["Discount"])
-    ), "Built-in demo dataset"
+        return load_data(path), "Local project dataset"
+    try:
+        return load_remote(), "76,000-row retail demand dataset • Kaggle-derived"
+    except Exception:
+        rng=np.random.default_rng(42)
+        dates=pd.date_range("2025-01-01",periods=180); rows=[]
+        cats=["Electronics","Grocery","Clothing","Home"]; regs=["North","South","East","West"]
+        for store in range(1,7):
+            for prod in range(1,13):
+                cat=cats[(prod-1)%4]; base=8+(prod%7)*2
+                for d in dates:
+                    sold=max(0,int(rng.poisson(base))); price=round(80+prod*23+store*7,2); inv=max(0,int(rng.normal(100,25)))
+                    disc=round(float(rng.uniform(0,.2)),2); demand=max(sold,int(sold*(1+rng.uniform(.05,.35))))
+                    rows.append([d,f"S{store:02d}",f"P{prod:03d}",cat,inv,sold,max(0,int(sold*1.1)),price,disc,int(rng.random()<.2),regs[(store-1)%4],demand,price+rng.normal(0,5)])
+        return pd.DataFrame(rows,columns=["Date","Store ID","Product ID","Category","Inventory Level","Units Sold","Units Ordered","Price","Discount","Promotion","Region","Demand","Competitor Pricing"]),"Fallback demo dataset"
 
 df, source = get_df()
 
@@ -109,10 +104,10 @@ st.markdown('<div class="section">Executive Snapshot</div>',unsafe_allow_html=Tr
 cards=st.columns(6)
 metrics=[
     ("Revenue",f"₹{k['Revenue']:,.0f}","Commercial"),
-    ("Units Sold",f"{k['Units Sold']:,}","Demand"),
+    ("Demand",f"{k['Demand']:,}","Forecast target"),
     ("Inventory",f"{k['Avg Inventory']:,.0f}","Stock"),
     ("Stock Cover",f"{k['Stock Cover Days']:.1f} d","Coverage"),
-    ("Risk Exposure",f"{risk_pct:.1f}%","Actionable"),
+    ("Demand Gap",f"{k['Demand Gap']:,}","Unmet signal"),
     ("Inventory Health",f"{health}/100","Health Score"),
 ]
 for col,(label,value,sub) in zip(cards,metrics):
@@ -140,6 +135,16 @@ with tab1:
     fig3=px.bar(s,x="Store ID",y="Revenue",color="Revenue",title="Store Performance")
     fig3.update_layout(template=plot_template,showlegend=False,margin=dict(l=10,r=10,t=50,b=10))
     st.plotly_chart(fig3,use_container_width=True)
+    c1,c2=st.columns(2)
+    cat=demand_by_category(f)
+    fc=px.bar(cat.sort_values("Demand"),x="Demand",y="Category",orientation="h",title="Average Daily Demand by Category")
+    fc.update_layout(template=plot_template,margin=dict(l=10,r=10,t=50,b=10))
+    c1.plotly_chart(fc,use_container_width=True)
+    promo=promotion_impact(f)
+    promo["Promotion"]=promo["Promotion"].map({0:"No Promotion",1:"Promotion"})
+    fp=px.bar(promo,x="Promotion",y="Avg_Demand",title="Promotion vs Average Demand",text_auto=".1f")
+    fp.update_layout(template=plot_template,margin=dict(l=10,r=10,t=50,b=10))
+    c2.plotly_chart(fp,use_container_width=True)
     st.markdown('<div class="section">Management Signals</div>',unsafe_allow_html=True)
     signals=[
         ("📈","Revenue engine",f"Top product {tp.iloc[0]['Product ID']} contributes ₹{tp.iloc[0]['Revenue']:,.0f} in selected data." if len(tp) else "No product data available."),
