@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from analytics import load_data, load_remote, kpis, monthly_sales, top_products, demand_by_category, promotion_impact
 from forecasting import chronological_model, forecast_next_days
 from recommendations import inventory_status, generate_alerts, narrative
+from ai_engine import ai_risk_scores, detect_anomalies, sku_segments, feature_importance, scenario_demand, copilot_summary
 
 st.set_page_config(
     page_title="Retail Intelligence Command Center",
@@ -91,6 +92,10 @@ f=df[df["Store ID"].astype(str).isin(ss)&df["Category"].isin(cc)].copy()
 k=kpis(f)
 alerts=generate_alerts(f,horizon)
 inv=inventory_status(f,horizon,.25)
+risk=ai_risk_scores(f,horizon)
+anomalies=detect_anomalies(f)
+segments=sku_segments(f)
+importance=feature_importance(f)
 
 critical=int((inv["Inventory_Status"]=="CRITICAL").sum())
 replenish=int((inv["Inventory_Status"]=="REPLENISH").sum())
@@ -114,8 +119,8 @@ for col,(label,value,sub) in zip(cards,metrics):
     col.metric(label,value)
     col.caption(sub)
 
-tab1,tab2,tab3,tab4=st.tabs([
-    "📊  Executive Overview","📦  Inventory Radar","🔮  Forecast Studio","⚡  Action Center"
+tab1,tab2,tab3,tab4,tab5=st.tabs([
+    "📊  Executive Overview","📦  Inventory Radar","🔮  Forecast Studio","⚡  Action Center","🤖  AI Command Center"
 ])
 
 plot_template="plotly_dark"
@@ -216,6 +221,70 @@ with tab4:
         icon={"CRITICAL":"🔴","REPLENISH":"🟠","OVERSTOCK":"🟡","HEALTHY":"🟢"}.get(r["Inventory_Status"],"⚪")
         st.markdown(f'<div class="insight"><b>{icon} {r["Store ID"]} / {r["Product ID"]} · {r["Inventory_Status"]}</b><br><span class="muted">{narrative(r)}</span></div>',unsafe_allow_html=True)
     st.download_button("⬇️ Download complete action queue",alerts.to_csv(index=False),"retail_action_queue.csv","text/csv")
+
+with tab5:
+    st.markdown('<div class="section">🤖 AI Command Center</div>',unsafe_allow_html=True)
+    st.caption("Machine-learning decision layer: risk scoring, anomaly detection, SKU segmentation, feature contribution and scenario simulation.")
+
+    st.markdown('<div class="section">AI Executive Copilot</div>',unsafe_allow_html=True)
+    st.markdown(f'<div class="insight"><b>🧠 Decision Brief</b><br><span class="muted">{copilot_summary(f,risk,anomalies,segments)}</span></div>',unsafe_allow_html=True)
+
+    a,b,c=st.columns(3)
+    high=int((risk["AI_Risk_Level"]=="HIGH").sum()) if len(risk) else 0
+    anomalies_n=int(anomalies["Anomaly"].sum()) if len(anomalies) else 0
+    a.metric("AI High-Risk SKUs",high)
+    b.metric("Detected Anomalies",anomalies_n)
+    c.metric("Portfolio Segments",segments["Segment"].nunique() if len(segments) else 0)
+
+    st.markdown('<div class="section">AI Risk Radar</div>',unsafe_allow_html=True)
+    rr=risk.head(25).copy()
+    fig=px.scatter(rr,x="Demand",y="Inventory",size="AI_Risk_Score",color="AI_Risk_Level",
+                   hover_data=["Store ID","Product ID","Coverage","Demand_Gap","Price_Gap"],
+                   title="AI Risk Score — Demand vs Inventory")
+    fig.update_layout(template=plot_template,margin=dict(l=10,r=10,t=50,b=10))
+    st.plotly_chart(fig,use_container_width=True)
+
+    a,b=st.columns(2)
+    with a:
+        st.markdown('<div class="section">AI Risk Queue</div>',unsafe_allow_html=True)
+        risk_view=risk[["Store ID","Product ID","Demand","Inventory","Coverage","Demand_Gap","AI_Risk_Score","AI_Risk_Level"]].head(20).copy()
+        risk_view.columns=["Store","Product","Demand","Inventory","Coverage Days","Demand Gap","Risk Score","Risk"]
+        st.dataframe(risk_view,use_container_width=True,hide_index=True)
+    with b:
+        st.markdown('<div class="section">Portfolio Segmentation</div>',unsafe_allow_html=True)
+        seg=segments.groupby("Segment",as_index=False).agg(SKUs=("Product ID","count"),Revenue=("Revenue","sum"),Demand=("Demand","mean"))
+        fig=px.bar(seg.sort_values("Revenue"),x="Revenue",y="Segment",orientation="h",text_auto=".2s",title="AI SKU Portfolio Segments")
+        fig.update_layout(template=plot_template,margin=dict(l=10,r=10,t=50,b=10))
+        st.plotly_chart(fig,use_container_width=True)
+
+    st.markdown('<div class="section">What is driving demand?</div>',unsafe_allow_html=True)
+    if len(importance):
+        fig=px.bar(importance.sort_values("Importance"),x="Importance",y="Feature",orientation="h",title="Predictive Feature Contribution")
+        fig.update_layout(template=plot_template,margin=dict(l=10,r=10,t=50,b=10))
+        st.plotly_chart(fig,use_container_width=True)
+        st.caption("Feature contribution is predictive, not causal.")
+
+    st.markdown('<div class="section">🔬 Scenario Lab</div>',unsafe_allow_html=True)
+    st.caption("Test a business decision before acting. The simulator uses observed promotion and price-demand relationships as scenario assumptions.")
+    s1,s2,s3=st.columns(3)
+    discount_delta=s1.slider("Discount change (percentage points)",-10,30,10)
+    promotion=s2.selectbox("Promotion scenario",[0,1],format_func=lambda x:"No promotion" if x==0 else "Run promotion")
+    price_delta=s3.slider("Price change (%)",-20,20,0)
+    scenario,observed_lift=scenario_demand(f,discount_delta,promotion,price_delta)
+    baseline=float(f["Demand"].mean()) if len(f) else 0
+    delta=scenario-baseline
+    x1,x2,x3=st.columns(3)
+    x1.metric("Baseline daily demand",f"{baseline:,.1f}")
+    x2.metric("Scenario daily demand",f"{scenario:,.1f}",f"{delta:+,.1f}")
+    x3.metric("Observed promotion lift",f"{observed_lift*100:+.1f}%")
+    st.markdown('<div class="insight"><b>⚠️ Decision note</b><br><span class="muted">Scenario output is a planning simulation, not a causal forecast. Validate business constraints before execution.</span></div>',unsafe_allow_html=True)
+
+    if len(anomalies):
+        st.markdown('<div class="section">🚨 Unusual Demand & Revenue Patterns</div>',unsafe_allow_html=True)
+        an=anomalies.head(12)
+        fig=px.scatter(an,x="Date",y="Demand",size="Anomaly_Score",color="Anomaly",title="Anomaly Detection")
+        fig.update_layout(template=plot_template,margin=dict(l=10,r=10,t=50,b=10))
+        st.plotly_chart(fig,use_container_width=True)
 
 st.divider()
 st.markdown(
