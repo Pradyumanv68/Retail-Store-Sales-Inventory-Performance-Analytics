@@ -25,14 +25,36 @@ def _clean(df):
     return df.dropna(subset=["Date"]).copy()
 
 def kpis(df):
-    inv=float(df["Inventory Level"].mean()) if len(df) else 0
-    sold=float(df["Units Sold"].sum()) if len(df) else 0
-    demand=float(df["Demand"].sum()) if len(df) else 0
-    return {"Revenue":df["Revenue"].sum(),"Units Sold":int(sold),"Demand":int(demand),
-            "Avg Selling Price":df["Price"].mean() if len(df) else 0,"Avg Inventory":inv,
-            "Stock Cover Days":inv/(demand/max(df["Date"].nunique(),1)) if demand else 0,
-            "SKU Count":df["Product ID"].nunique(),"Store Count":df["Store ID"].nunique(),
-            "Demand Gap":int(max(0,demand-sold))}
+    if not len(df):
+        return {"Revenue":0,"Units Sold":0,"Demand":0,"Avg Selling Price":0,"Avg Inventory":0,
+                "Stock Cover Days":0,"SKU Count":0,"Store Count":0,"Demand Gap":0}
+
+    # Inventory is a point-in-time measure: use the latest observed stock per SKU/store,
+    # rather than averaging every historical inventory observation.
+    latest_date=df["Date"].max()
+    latest=df[df["Date"]==latest_date].copy()
+    if not len(latest):
+        latest=df.copy()
+    latest_stock=float(latest["Inventory Level"].sum())
+
+    # Demand is a flow: convert it to average daily demand before calculating stock cover.
+    days=max(df["Date"].nunique(),1)
+    daily_demand=float(df["Demand"].sum())/days
+    stock_cover=latest_stock/daily_demand if daily_demand>0 else 0
+
+    sold=float(df["Units Sold"].sum())
+    demand=float(df["Demand"].sum())
+    return {
+        "Revenue":float(df["Revenue"].sum()),
+        "Units Sold":int(sold),
+        "Demand":int(demand),
+        "Avg Selling Price":float(df["Price"].mean()),
+        "Avg Inventory":latest_stock,
+        "Stock Cover Days":stock_cover,
+        "SKU Count":int(df["Product ID"].nunique()),
+        "Store Count":int(df["Store ID"].nunique()),
+        "Demand Gap":int(max(0,demand-sold)),
+    }
 
 def monthly_sales(df):
     x=df.copy(); x["Month"]=x["Date"].dt.to_period("M").astype(str)
