@@ -164,7 +164,7 @@ with tab2:
     # Plotly can reject mixed/object dtypes after dataframe aggregation; use explicit numeric plot columns.
     radar=inv.copy()
     radar["Demand Forecast"]=pd.to_numeric(radar["Demand Forecast"],errors="coerce").fillna(0)
-    radar["Inventory Level"]=pd.to_numeric(radar["Inventory Level"],errors="coerce").fillna(0)
+    radar["Inventory Level"]=pd.to_numeric(radar["Inventory_Level"],errors="coerce").fillna(0)
     radar["Recommended Order"]=pd.to_numeric(radar["Recommended Order"],errors="coerce").fillna(0).clip(lower=0)
     radar["Inventory_Status"]=radar["Inventory_Status"].astype(str)
     fig=px.scatter(
@@ -180,7 +180,7 @@ with tab2:
     fig.update_layout(template=plot_template,margin=dict(l=10,r=10,t=50,b=10))
     b.plotly_chart(fig,use_container_width=True)
     st.markdown('<div class="section">SKU-level decision table</div>',unsafe_allow_html=True)
-    display=inv[["Store ID","Product ID","Units Sold","Inventory Level","Demand Forecast","Recommended Order","Inventory_Status"]].head(40).copy()
+    display=inv[["Store ID","Product ID","Units Sold","Inventory_Level","Demand Forecast","Recommended Order","Inventory_Status"]].head(40).copy()
     display.columns=["Store","Product","Avg Daily Sales","Inventory","Forecast Demand","Order Qty","Status"]
     st.dataframe(display,use_container_width=True,hide_index=True)
     st.download_button("⬇️ Export inventory decision queue",alerts.to_csv(index=False),"retail_inventory_actions.csv","text/csv")
