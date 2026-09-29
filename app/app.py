@@ -109,12 +109,16 @@ overstock=int((inv["Inventory_Status"]=="OVERSTOCK").sum())
 total=len(inv)
 healthy_pct=(int((inv["Inventory_Status"]=="HEALTHY").sum())/total*100) if total else 0
 risk_pct=((critical+replenish)/total*100) if total else 0
-health=max(0,min(100,round(100-risk_pct-overstock*100/max(total,1)*0.35)))
+# Executive health score: weighted from current coverage, critical/replenishment exposure and overstock exposure.
+coverage_score=min(100, max(0, (k["Stock Cover Days"]/max(horizon,1))*100))
+risk_score=100-risk_pct
+overstock_penalty=(overstock/max(total,1))*25
+health=max(0,min(100,round(0.55*coverage_score+0.45*risk_score-overstock_penalty)))
 
 st.markdown('<div class="section">Executive Snapshot</div>',unsafe_allow_html=True)
 cards=st.columns(6)
 metrics=[
-    ("Revenue",f"₹{k['Revenue']:,.0f}","Commercial"),
+    ("Revenue",f"₹{k['Revenue']/1e6:.1f}M","Commercial"),
     ("Demand",f"{k['Demand']:,}","Forecast target"),
     ("Inventory",f"{k['Avg Inventory']:,.0f}","Stock"),
     ("Stock Cover",f"{k['Stock Cover Days']:.1f} d","Coverage"),
