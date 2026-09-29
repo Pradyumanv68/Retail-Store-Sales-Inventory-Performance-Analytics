@@ -54,7 +54,8 @@ with tabs[3]:
     alerts=generate_alerts(f,horizon); st.subheader("Priority Action Queue")
     for _,r in alerts.head(8).iterrows():
         icon="🔴" if r["Inventory_Status"]=="CRITICAL" else ("🟠" if r["Inventory_Status"]=="REPLENISH" else ("🟡" if r["Inventory_Status"]=="OVERSTOCK" else "🟢"))
-        st.markdown(f"**{icon} {r['Store ID']} / {r['Product ID']} — {r['Inventory_Status']}**  
-{narrative(r)}")
+        title = f"**{icon} {r['Store ID']} / {r['Product ID']} — {r['Inventory_Status']}**"
+        st.markdown(title)
+        st.caption(narrative(r))
     st.download_button("⬇️ Download Action Queue",alerts.to_csv(index=False),"retail_inventory_actions.csv","text/csv")
 st.caption("Capstone Project • Pradyuman Verma • B.Tech CSE (Data Science) • SRMIST")
