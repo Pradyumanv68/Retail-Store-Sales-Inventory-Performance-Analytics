@@ -1,33 +1,52 @@
-# Retail Store Sales & Inventory Performance Analytics
+# 📦 Retail Store Sales & Inventory Performance Analytics
 
-An end-to-end retail intelligence capstone that transforms sales and inventory data into actionable business decisions.
+> **Retail Intelligence Command Center** — an end-to-end Data Science capstone for turning retail transactions and inventory signals into operational decisions.
 
-## What this project delivers
-- Executive sales and revenue analytics
-- Inventory health and risk classification
-- Fast/slow-moving product identification
-- Chronological demand forecasting
-- Stockout and overstock detection
-- Replenishment recommendations
-- Interactive Streamlit dashboard
-- Downloadable manager action queue
-- Reproducible Python analytics and tests
+### 🎯 Business Problem
+Retailers must balance sales growth with enough stock to avoid lost sales while preventing capital from being trapped in slow-moving inventory. This project connects **sales analytics → demand forecasting → inventory risk → replenishment action** in one workflow.
 
-## Decision flow
-**Sales → Demand → Inventory Risk → Forecast → Replenishment Action**
+### ✨ Highlights
+- Executive revenue, units, inventory and stock-cover KPIs
+- Product, category and store performance analysis
+- Inventory health segmentation: **CRITICAL / REPLENISH / OVERSTOCK / HEALTHY**
+- Chronological ML evaluation for demand forecasting
+- Product-level future demand forecasting
+- Recommended order quantities with safety-stock logic
+- Priority action queue downloadable as CSV
+- Interactive Streamlit command center with filters
+- Built-in demo dataset generation so the app runs immediately
 
-## Tech Stack
-Python • Pandas • NumPy • Scikit-learn • Plotly • Streamlit • Jupyter
+### 🧠 Analytics Architecture
+```
+Raw Retail Data
+      ↓
+Validation & Feature Engineering
+      ↓
+Sales + Inventory KPIs
+      ↓
+Demand Forecasting (Gradient Boosting)
+      ↓
+Inventory Risk Engine
+      ↓
+Replenishment Recommendations
+      ↓
+Interactive Dashboard
+```
 
-## Run
+### 🛠️ Tech Stack
+Python · Pandas · NumPy · Scikit-learn · Plotly · Streamlit · Jupyter
+
+### ▶️ Run Locally
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
 pip install -r requirements.txt
 streamlit run app/app.py
 ```
 
-The included demo dataset allows the dashboard to run immediately. For the final academic analysis, replace it with the cited retail inventory dataset and regenerate the results.
+The dashboard uses the supplied/Kaggle CSV when placed at `data/retail_store_inventory.csv`; otherwise it creates a reproducible demo dataset automatically.
 
-## Author
-**Pradyuman Verma** — B.Tech CSE (Data Science), SRM Institute of Science and Technology
+### 📌 Suggested Evaluation Metrics
+Forecasting is evaluated using **MAE, RMSE and R²** with a chronological holdout to reduce leakage from future observations.
+
+### 👨‍💻 Author
+**Pradyuman Verma**  
+B.Tech CSE (Data Science) — SRM Institute of Science and Technology
