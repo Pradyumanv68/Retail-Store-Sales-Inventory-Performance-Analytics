@@ -180,8 +180,8 @@ with tab2:
     fig.update_layout(template=plot_template,margin=dict(l=10,r=10,t=50,b=10))
     b.plotly_chart(fig,use_container_width=True)
     st.markdown('<div class="section">SKU-level decision table</div>',unsafe_allow_html=True)
-    display=inv[["Store ID","Product ID","Units Sold","Inventory_Level","Demand Forecast","Recommended Order","Inventory_Status"]].head(40).copy()
-    display.columns=["Store","Product","Avg Daily Sales","Inventory","Forecast Demand","Order Qty","Status"]
+    display=inv[["Store ID","Product ID","Daily_Demand","Inventory_Level","Demand Forecast","Recommended Order","Inventory_Status"]].head(40).copy()
+    display.columns=["Store","Product","Avg Daily Demand","Inventory","Forecast Demand","Order Qty","Status"]
     st.dataframe(display,use_container_width=True,hide_index=True)
     st.download_button("⬇️ Export inventory decision queue",alerts.to_csv(index=False),"retail_inventory_actions.csv","text/csv")
 
