@@ -1,9 +1,8 @@
-import os,sys
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+import os
 import numpy as np,pandas as pd,streamlit as st,plotly.express as px
-from src.analytics import load_data,kpis,monthly_sales,top_products
-from src.forecasting import chronological_model,forecast_next_days
-from src.recommendations import inventory_status,generate_alerts,narrative
+from analytics import load_data,kpis,monthly_sales,top_products
+from forecasting import chronological_model,forecast_next_days
+from recommendations import inventory_status,generate_alerts,narrative
 
 st.set_page_config(page_title="Retail Intelligence | Pradyuman Verma",page_icon="📦",layout="wide",initial_sidebar_state="expanded")
 st.markdown("""<style>
