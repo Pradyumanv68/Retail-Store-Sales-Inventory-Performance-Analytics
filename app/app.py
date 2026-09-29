@@ -74,6 +74,15 @@ def get_df():
 
 df, source = get_df()
 
+@st.cache_data(ttl=3600)
+def get_ai_bundle(data, planning_horizon):
+    return (
+        ai_risk_scores(data, planning_horizon),
+        detect_anomalies(data),
+        sku_segments(data),
+        feature_importance(data),
+    )
+
 with st.sidebar:
     st.markdown("## 🎛️ Control Center")
     st.caption(source)
@@ -92,10 +101,7 @@ f=df[df["Store ID"].astype(str).isin(ss)&df["Category"].isin(cc)].copy()
 k=kpis(f)
 alerts=generate_alerts(f,horizon)
 inv=inventory_status(f,horizon,.25)
-risk=ai_risk_scores(f,horizon)
-anomalies=detect_anomalies(f)
-segments=sku_segments(f)
-importance=feature_importance(f)
+risk,anomalies,segments,importance=get_ai_bundle(f,horizon)
 
 critical=int((inv["Inventory_Status"]=="CRITICAL").sum())
 replenish=int((inv["Inventory_Status"]=="REPLENISH").sum())
